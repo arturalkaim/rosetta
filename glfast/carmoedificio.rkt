@@ -1,5 +1,5 @@
 #lang racket
-(require rosetta/glfast)
+(require "backend.rkt")
 ;(delete-all-shapes)
 (init 1000)
 (define (mm l)
@@ -35,7 +35,7 @@ Metric\\Columns\\M_Round Column.rfa" '("Diameter")))
 
 
 ;Columns
-#;(define (building-columns p n m)
+(define (building-columns p n m)
   (for/list ((x (range 0 (+ (- building-length column-width) (/ (-
                                                                  building-length column-width) n)) (/ (- building-length column-width)
                                                                                                       n))))
@@ -47,14 +47,28 @@ Metric\\Columns\\M_Round Column.rfa" '("Diameter")))
                    (+ y (/ column-width 2)))))))
 
 
+#;(define (interior-building p n m)
+  (let ((ll (level-list p)))
+    (map (lambda (level)
+           (parameterize ((current-level level)
+                          (default-level-to-level-height level-height))
+             (slab (list p (+x p building-length) (+xy p
+building-length building-width) (+y p building-width) p))
+             (building-columns p m n)))
+         ll)
+    (roof (list p (+x p building-length) (+xy p building-length
+building-width) (+y p building-width) p)
+          (upper-level (last ll) level-height))))
+
 ;Core Building
 (define (interior-building p n m)
   (let ((ll (level-list p)))
     (map (lambda (level)
-           (slab (list p (+x p building-length) (+xy p
+            (parameterize ((current-level level)
+                          (default-level-to-level-height level-height))(slab (list p (+x p building-length) (+xy p
                                                      building-length building-width) (+y p building-width) p))
-           ;(building-columns p m n)
-           )
+           (building-columns p m n)
+           ))
          ll)
     (roof (list p (+x p building-length) (+xy p building-length
                                               building-width) (+y p building-width) p)
