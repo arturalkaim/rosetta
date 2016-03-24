@@ -3,12 +3,14 @@
          "../base/utils.rkt"
          "../base/coord.rkt"
          "../base/shapes.rkt"
-         "../util/geometry.rkt")
+         "../util/geometry.rkt"
+         "sliders.rkt")
 
 (provide (all-from-out "../base/coord.rkt"))
 (provide (all-from-out "../base/utils.rkt"))
 (provide (all-from-out "../base/shapes.rkt"))
 (provide (all-from-out "../util/geometry.rkt"))
+(provide (all-from-out "sliders.rkt"))
 
 (require (prefix-in ffi: "fffidefiner.rkt"))
 ;(provide (all-from-out "fffidefiner.rkt"))
@@ -36,17 +38,19 @@
          polygon-surface
          polygon
          point
+         cube
          mirror
          view
          extrude
          rotate)
 (define city ffi:city)
 (define (end_cycle?)
-  (if (< (ffi:end_cycle2) 0)
-      #f
-      #t))
+  (< (ffi:end_cycle) 0))
+
 
 (define box ffi:box)
+
+
 
 (define (cylinder p1 radius p2 [r 1.0] [g 1.0] [b 1.0])
   (let* ([comp (distance p1 p2)]
@@ -82,6 +86,11 @@
     (apply ffi:prismpts args)
     )
   )
+
+(define (cube center size [r 1.0] [g 1.0] [b 1.0])
+  (let ([p1 (+z center (/ size 2))]
+        [p2 (+z center (/ size -2))])
+    (prism p1 size size p2 r g b)))
 
 (define (trunk p1 w0 h0 w1 h1 p2 sides [r 1.0] [g 1.0] [b 1.0])
   (let* ([comp (distance p1 p2)]
@@ -252,19 +261,19 @@
   (right-cuboid (loc-in-world p0) 0.350 0.350 (loc-in-world p1)))
 
 (define (column center
-                  [bottom-level (current-level)]
-                  [top-level (upper-level bottom-level)]
-                  )
-    (let ((width 1.0))
-      (prism (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height bottom-level))
-             width
-             width
-             (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height top-level))
-             4.0)
-      #;(box (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height bottom-level))
-                    width
-                    width
-                    (- (level-height top-level) (level-height bottom-level)))))
+                [bottom-level (current-level)]
+                [top-level (upper-level bottom-level)]
+                )
+  (let ((width 1.0))
+    (prism (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height bottom-level))
+           width
+           width
+           (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height top-level))
+           7.0)
+    #;(box (+xyz (loc-in-world center) (/ width -2) (/ width -2) (level-height bottom-level))
+           width
+           width
+           (- (level-height top-level) (level-height bottom-level)))))
 
 ;(def-shape (door))
 (define (slab vertices [level (current-level)])
@@ -275,8 +284,8 @@
 
 (define (roof vertices [level (current-level)])
   (extrusion (map (lambda (p)
-                           (+z (loc-in-world p) (level-height level)))
-                         vertices) 1.0))
+                    (+z (loc-in-world p) (level-height level)))
+                  vertices) 1.0))
 
 ;;;;;;;;;;;;;;;;;;;;; Transformations         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide view rotate transform)
@@ -340,17 +349,17 @@
     (apply fn args)
     (send_data)))
 
-(define (while)
-  (unless (end_cycle?)
-    (begin
-      (when changed
-        (begin 
-          (render-scene fn args)
-          (set! changed #f))
-        )
-      (pool)
-      (cycle)
-      (while))))
+(define (while [n 0])
+  (begin
+     (when (end_cycle?)
+      (begin
+        (when changed
+          (begin 
+            (render-scene fn args)
+            (set! changed #f)))
+        (pool)
+        (cycle)
+        (while (+ n 1))))))
 ;;;;;;;;;;;;
 
 
